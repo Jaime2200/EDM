@@ -1,0 +1,106 @@
+---
+title: "Untitled"
+author: "Jaime"
+date: '2023-04-26'
+output: html_document
+---
+
+```{r}
+setwd("C:/Users/jaime/EDM/Practica5/Practica 5 Sin sol")
+data = read.csv("day.csv")
+```
+
+
+```{r}
+library(randomForest)
+
+data$season_1 <- ifelse(data$season == 1, 1, 0)
+data$season_2 <- ifelse(data$season == 2, 1, 0)
+data$season_3 <- ifelse(data$season == 3, 1, 0)
+
+# Create MISTY and RAIN features
+data$MISTY <- ifelse(data$weathersit == 2, 1, 0)
+data$RAIN <- ifelse(data$weathersit %in% c(3,4), 1, 0)
+
+# Denormalize temp, hum and windspeed
+data$temp <- data$temp * (39+8) - 8
+data$hum <- data$hum *100
+data$windspeed <- data$windspeed * 67
+
+# Create days_since_2011 feature
+data$days_since_2011 <- as.numeric(as.Date(data$dteday, format="%Y-%m-%d")) - 14975
+
+
+# Build the linear model
+rforest <- randomForest(cnt ~ workingday + holiday + season_1 + season_2 + season_3 + MISTY + RAIN + temp + hum + windspeed + days_since_2011, data=data)
+
+# Print the summary of the model
+summary(rforest)
+```
+
+```{r}
+
+df = data[,c(6,8,10,12,13,16,17,18,19,20,21,22)]
+```
+
+
+```{r}
+library(iml)
+
+X = df[which(names(df) != "cnt")]
+predictor = Predictor$new(rforest, data = X, y= df$cnt)
+
+days2011= Partial$new(predictor, feature= "days_since_2011", ice= FALSE)
+days2011$plot()
+
+temp= Partial$new(predictor, feature= "temp", ice= FALSE)
+temp$plot()
+
+humidity= Partial$new(predictor, feature= "hum", ice= FALSE)
+humidity$plot()
+```
+
+
+```{r}
+humidity= Partial$new(predictor, feature= c("hum", "temp"), ice= FALSE)
+humidity$plot()
+```
+
+
+```{r}
+setwd("C:/Users/jaime/EDM/Practica5/Practica 5 Sin sol")
+house_data = read.csv("kc_house_data.csv")
+```
+
+```{r}
+names(house_data)
+```
+
+
+
+```{r}
+cols = c("bedrooms","sqft_living", "sqft_lot", "bathrooms", "floors",  "yr_built", "price")
+df2 = house_data[, cols]
+
+rforest <- randomForest(price ~ bedrooms + sqft_living + sqft_lot + bathrooms + floors + yr_built, data=df2)
+
+library(iml)
+
+X = df[which(names(df2) != "price")]
+predictor = Predictor$new(rforest, data = X, y= df2$price)
+
+bed= Partial$new(predictor, feature= "bedrooms", ice= FALSE)
+bed$plot()
+
+bath= Partial$new(predictor, feature= "bathrooms", ice= FALSE)
+bath$plot()
+
+sqrt_living= Partial$new(predictor, feature= "sqft_living", ice= FALSE)
+sqrt_living$plot()
+
+floor= Partial$new(predictor, feature= "floors", ice= FALSE)
+floor$plot()
+```
+
+
+
